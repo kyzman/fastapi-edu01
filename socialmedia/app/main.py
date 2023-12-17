@@ -3,6 +3,9 @@ from typing import Optional
 from fastapi import FastAPI, Body, Response, status, HTTPException
 from pydantic import BaseModel
 from random import randrange
+import psycopg2
+from psycopg2.extras import RealDictCursor
+import time
 
 app = FastAPI()
 
@@ -12,6 +15,18 @@ class Post(BaseModel):
     content: str
     published: bool = True
     rating: Optional[int] = None
+
+while True:
+    try:
+        conn = psycopg2.connect(host='localhost', database='socialmedia',
+                                user='postgres', password='loop', cursor_factory=RealDictCursor)
+        cursor = conn.cursor()
+        print("DB connect successful!")
+        break
+    except Exception as error:
+        print("DB connection failed!")
+        print("Error:", error)
+        time.sleep(3)
 
 
 my_posts = [{"title": "title of post1", "content": "content of post1", "id": 1},
@@ -86,3 +101,4 @@ def update_post(id: int, post: Post):
     new_post['id'] = id
     my_posts[index] = new_post
     return {"data": new_post}
+
