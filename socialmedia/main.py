@@ -25,6 +25,12 @@ def find_post(id):
             return p
 
 
+def find_index_post(id):
+    for i, p in enumerate(my_posts):
+        if p['id'] == id:
+            return i
+
+
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
@@ -35,12 +41,12 @@ def get_posts():
     return {"data": my_posts}
 
 
-@app.post("/posts")
+@app.post("/posts",status_code=status.HTTP_201_CREATED)
 def create_posts(new_post: Post):
     post = dict(new_post)
     post['id'] = randrange(0,1000000)
     my_posts.append(post)
-    return {"new_post": f"new post received", "data": post}
+    return {"new_post": f"new post created", "data": post}
 
 
 @app.get("/posts/latest")
@@ -58,3 +64,10 @@ def get_post(id: int):
 
     return {"post_detail": post}
 
+
+@app.delete("/posts/{id}")
+def delete_post(id: int):
+    # deleting post
+    index = find_index_post(id)
+    my_posts.pop(index)
+    return {"message": f"post {id} was successfully deleted"}
