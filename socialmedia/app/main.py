@@ -29,23 +29,6 @@ while True:
         time.sleep(3)
 
 
-my_posts = [{"title": "title of post1", "content": "content of post1", "id": 1},
-            {"title": "favorite food", "content": "I like pizza", "id": 2},
-            {"title": "title of post3", "content": "content of post3", "id": 3}]
-
-
-def find_post(id):
-    for p in my_posts:
-        if id == p['id']:
-            return p
-
-
-def find_index_post(id):
-    for i, p in enumerate(my_posts):
-        if p['id'] == id:
-            return i
-
-
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
@@ -53,26 +36,24 @@ async def root():
 
 @app.get("/posts")
 def get_posts():
-    return {"data": my_posts}
+    cursor.execute("""SELECT * FROM posts;""")
+    posts = cursor.fetchall()
+    return {"data": posts}
 
 
 @app.post("/posts",status_code=status.HTTP_201_CREATED)
 def create_posts(new_post: Post):
-    post = dict(new_post)
-    post['id'] = randrange(0,1000000)
-    my_posts.append(post)
+    cursor.execute("""INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING *;""",
+                   (new_post.title, new_post.content, new_post.published))  # don't use f-string to avoid sql injection
+    post = cursor.fetchall()
+    conn.commit()
     return {"new_post": f"new post created", "data": post}
-
-
-@app.get("/posts/latest")
-def get_latest_post():
-    post = my_posts[len(my_posts)-1]
-    return post
 
 
 @app.get("/posts/{id}")
 def get_post(id: int):
-    post = find_post(id)
+    cursor.execute("""SELECT * FROM posts WHERE id = %s """, (str(id),))
+    post = cursor.fetchone()
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id: {id} was not found!")
@@ -83,22 +64,25 @@ def get_post(id: int):
 @app.delete("/posts/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int):
     # deleting post
-    index = find_index_post(id)
-    if index == None:
+    cursor.execute("""DELETE FROM posts WHERE id = %s RETURNING *""", (str(id),))
+    deleted_post = cursor.fetchone()
+    if deleted_post is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Post with {id} was not found!")
-    my_posts.pop(index)
+
+    conn.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 @app.put("/posts/{id}")
 def update_post(id: int, post: Post):
+    cursor.execute("""UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING *""",
+                   (post.title,post.content, post.published, str(id)))
+    updated_post = cursor.fetchone()
+    conn.commit()
 
-    index = find_index_post(id)
-    if index == None:
+    if updated_post is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Post with {id} was not found!")
-    new_post = dict(post)
-    new_post['id'] = id
-    my_posts[index] = new_post
-    return {"data": new_post}
+
+    return {"data": updated_post}
 
