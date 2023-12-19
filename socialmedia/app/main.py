@@ -43,23 +43,31 @@ async def root():
 
 @app.get("/sqlalchemy")
 def test_posts(db: Session = Depends(get_db)):
-    return {"status": "success"}
-
-
-@app.get("/posts")
-def get_posts():
-    cursor.execute("""SELECT * FROM posts;""")
-    posts = cursor.fetchall()
+    query = db.query(models.Post)
+    print(query)
+    posts = query.all()
     return {"data": posts}
 
 
-@app.post("/posts",status_code=status.HTTP_201_CREATED)
-def create_posts(new_post: Post):
-    cursor.execute("""INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING *;""",
-                   (new_post.title, new_post.content, new_post.published))  # don't use f-string to avoid sql injection
-    post = cursor.fetchall()
-    conn.commit()
-    return {"new_post": f"new post created", "data": post}
+@app.get("/posts")
+def get_posts(db: Session = Depends(get_db)):
+    # cursor.execute("""SELECT * FROM posts;""")
+    # posts = cursor.fetchall()
+    posts = db.query(models.Post).all()
+    return {"data": posts}
+
+
+@app.post("/posts", status_code=status.HTTP_201_CREATED)
+def create_posts(post: Post, db: Session = Depends(get_db)):
+    # cursor.execute("""INSERT INTO posts (title, content, published) VALUES (%s, %s, %s) RETURNING *;""",
+    #                (post.title, post.content, post.published))  # don't use f-string to avoid sql injection
+    # new_post = cursor.fetchall()
+    # conn.commit()
+    new_post = models.Post(title=post.title, content=post.content, published=post.published)  # create entry
+    db.add(new_post)  # add entry to DB
+    db.commit()  # commit changes
+    db.refresh(new_post)   # RETURNING *
+    return {"new_post": f"new post created", "data": new_post}
 
 
 @app.get("/posts/{id}")
