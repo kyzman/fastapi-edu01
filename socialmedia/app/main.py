@@ -2,11 +2,12 @@ from typing import List
 
 from fastapi import FastAPI, Response, status, HTTPException, Depends
 from sqlalchemy.orm import Session
+from passlib.context import CryptContext
 
 from app import models, schemas
 from app.database import engine, get_db
 
-
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -66,3 +67,12 @@ def update_post(post_id: int, post: schemas.PostCreate, db: Session = Depends(ge
     query.update(dict(post))
     db.commit()
     return query.first()
+
+
+@app.post("/users", status_code=status.HTTP_201_CREATED, response_model=schemas.UserOut)
+def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    new_user = models.User(**dict(user))  # create entry
+    db.add(new_user)  # add entry to DB
+    db.commit()  # commit changes
+    db.refresh(new_user)   # RETURNING *
+    return new_user
