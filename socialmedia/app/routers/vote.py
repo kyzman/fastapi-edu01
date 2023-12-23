@@ -19,8 +19,9 @@ def vote(vote: schemas.Vote, db: Session = Depends(get_db), current_user: int = 
                             detail=f"post with id: {vote.post_id} was not found!")
 
     query = db.query(models.Vote).filter(
-        (models.Vote.post_id == vote.post_id) and (models.Vote.user_id == current_user.id))
+        (models.Vote.post_id == vote.post_id) & (models.Vote.user_id == current_user.id))
     voted = query.first()
+    print(voted)
     if (vote.direction == 1):
         if voted:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"user {current_user.id} already voted on post {vote.post_id}")
