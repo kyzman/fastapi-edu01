@@ -23,7 +23,6 @@ def get_posts(db: Session = Depends(get_db),
              join(models.Vote, models.Vote.post_id == models.Post.id, isouter=True).
              group_by(models.Post.id).filter(models.Post.title.contains(search)).
              offset(skip).limit(limit).all())
-    # result = list(map(lambda x:x._mapping, query))
 
     return posts
 
@@ -39,16 +38,17 @@ def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db),
     return new_post
 
 
-@router.get("/{post_id}", response_model=schemas.Post)
+@router.get("/{post_id}", response_model=schemas.PostOut)
 def get_post(post_id: int, db: Session = Depends(get_db),
              current_user: int = Depends(oauth2.get_current_user)):
-    post = db.query(models.Post).filter(models.Post.id == post_id).first()
+
+    post = db.query(models.Post, func.count(models.Vote.post_id).label("votes")).join(
+            models.Vote, models.Vote.post_id == models.Post.id, isouter=True).group_by(
+            models.Post.id).filter(models.Post.id == post_id).first()
+
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with id: {post_id} was not found!")
-    elif post.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail=f"Not authorized to action")
 
 
     return post
