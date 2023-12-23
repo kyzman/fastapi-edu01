@@ -2,6 +2,7 @@ from fastapi import FastAPI
 
 from app import models
 from app.database import engine
+from app.config import settings
 from app.routers.post import router as post_router
 from app.routers.user import router as user_router
 from app.routers.auth import router as auth_router
