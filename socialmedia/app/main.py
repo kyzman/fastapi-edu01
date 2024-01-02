@@ -6,6 +6,8 @@ from app.routers.user import router as user_router
 from app.routers.auth import router as auth_router
 from app.routers.vote import router as vote_router
 
+# models.Base.metadata.create_all(bind=engine)
+
 app = FastAPI()
 
 origins = ["*"]
@@ -26,4 +28,4 @@ app.include_router(vote_router)
 
 @app.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Hello World!"}
