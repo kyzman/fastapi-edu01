@@ -3,18 +3,7 @@ from jose import jwt
 
 from app import schemas
 from app.config import settings
-from tests.database import client, session
 
-
-@pytest.fixture
-def test_user(client):
-    user_data = {"email": "testmail@mail.ru", "password": "pass123"}
-    res = client.post("/users/", json=user_data)
-
-    assert res.status_code == 201
-    new_user = res.json()
-    new_user['password'] = user_data['password']
-    return new_user
 
 # def test_root(client):
 #     res = client.get("/")
@@ -40,3 +29,16 @@ def test_login_user(test_user, client):
     assert login_res.token_type == 'bearer'
     assert res.status_code == 200
 
+
+@pytest.mark.parametrize("email, password, status_code, detail", [
+    ('wrongmail@mail.ru', 'pass123', 404, 'No user found'),
+    ('testmail@mail.ru', 'WrongPassword', 403, 'Invalid password'),
+    ('wrongmail@mail.ru', 'WrongPassword', 404, 'No user found'),
+    (None, 'pass123', 422, [{'type': 'missing', 'loc': ['body', 'username'], 'msg': 'Field required', 'input': None, 'url': 'https://errors.pydantic.dev/2.5/v/missing'}]),
+    ('testmail@mail.ru', None, 422, [{'type': 'missing', 'loc': ['body', 'password'], 'msg': 'Field required', 'input': None, 'url': 'https://errors.pydantic.dev/2.5/v/missing'}]),
+])
+def test_incorrect_login(test_user, client, email, password, status_code, detail):
+    res = client.post("/login", data={"username": email, "password": password})
+
+    assert res.status_code == status_code
+    assert res.json().get('detail') == detail
