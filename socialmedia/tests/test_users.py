@@ -1,5 +1,7 @@
 from fastapi.testclient import TestClient
 
+import pytest
+
 from app.database import get_db, Base
 from app.main import app
 from app import schemas
@@ -30,17 +32,26 @@ def override_get_db():
 
 app.dependency_overrides[get_db] = override_get_db
 
-client = TestClient(app)
+
+@pytest.fixture
+def client():
+    # run code before we run test
+    Base.metadata.create_all(bind=engine)
+
+    yield TestClient(app)
+
+    # run code after test finishes
+    Base.metadata.drop_all(bind=engine)
 
 
-def test_root():
+def test_root(client):
     res = client.get("/")
 
     assert res.json().get('message') == "Hello World!"
     assert res.status_code == 200
 
 
-def test_create_user():
+def test_create_user(client):
     res = client.post("/users/", json={"email": "hello123@gmail.com", "password": "password123"})
 
     new_user = schemas.UserOut(**res.json())
