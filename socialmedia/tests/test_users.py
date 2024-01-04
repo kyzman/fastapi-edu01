@@ -1,13 +1,41 @@
 from fastapi.testclient import TestClient
+
+from app.database import get_db, Base
 from app.main import app
 from app import schemas
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from app.config import settings
+
+# SQLALCHEMY_DATABASE_URL = "postgresql://postgres:loop@localhost:5432/socialmedia_test"
+SQLALCHEMY_DATABASE_URL = (f'postgresql://{settings.database_username}:{settings.database_password}@'
+                           f'{settings.database_hostname}:{settings.database_port}/{settings.database_name}_test')
+
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
+
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base.metadata.create_all(bind=engine)
+
+
+def override_get_db():
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+app.dependency_overrides[get_db] = override_get_db
 
 client = TestClient(app)
 
 
 def test_root():
     res = client.get("/")
-    print("\n", res.json())
+
     assert res.json().get('message') == "Hello World!"
     assert res.status_code == 200
 
