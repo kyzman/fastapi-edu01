@@ -85,18 +85,27 @@ def test_posts(test_user, session):
          "content": "content for 3rd post",
          "owner_id": test_user['id']}
     ]
-    session.add_all([
-        models.Post(title="1st title",
-                    content="content for 1st post",
-                    owner_id=test_user['id']),
-        models.Post(title="2nd title",
-                    content="content for 2nd post",
-                    owner_id=test_user['id']),
-        models.Post(title="3rd title",
-                    content="content for 3rd post",
-                    owner_id=test_user['id'])
-    ])
+
+    def create_post_model(post):
+        return models.Post(**post)
+
+    posts = list(map(create_post_model, posts_data))
+    session.add_all(posts)
+
+    # session.add_all([
+    #     models.Post(title="1st title",
+    #                 content="content for 1st post",
+    #                 owner_id=test_user['id']),
+    #     models.Post(title="2nd title",
+    #                 content="content for 2nd post",
+    #                 owner_id=test_user['id']),
+    #     models.Post(title="3rd title",
+    #                 content="content for 3rd post",
+    #                 owner_id=test_user['id'])
+    # ])
 
     session.commit()
 
-    session.query(models.Post).all()
+    posts = session.query(models.Post).all()
+
+    return posts
