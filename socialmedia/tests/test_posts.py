@@ -5,9 +5,6 @@ from app import schemas
 def test_get_all_posts(authorized_client, test_posts):
     res = authorized_client.get("/posts/")
 
-    def validate(post):
-        return schemas.PostOut(**post)
-
     assert len(res.json()) == len(test_posts)
     assert res.status_code == 200
 
@@ -67,3 +64,27 @@ def test_create_post_default_published_true(authorized_client, test_user, test_p
 def test_unauthorized_create_post(client):
     res = client.post(f"/posts/", json={"title": "Dummy title", "content": "some dummy content"})
     assert res.status_code == 401
+
+
+def test_unauthorized_delete_post(client, test_posts):
+    res = client.delete(f"/posts/{test_posts[1].id}")
+    assert res.status_code == 401
+
+
+def test_delete_post_success(authorized_client, test_user, test_posts):
+    res = authorized_client.delete(f"/posts/{test_posts[1].id}")
+    assert res.status_code == 204
+    res = authorized_client.get("/posts")
+
+    assert len(res.json()) == len(test_posts) - 1
+
+
+def test_delete_post_not_exist(authorized_client, test_user, test_posts):
+    res = authorized_client.delete(f"/posts/8888")
+    assert res.status_code == 404
+
+
+def test_delete_other_user_post(authorized_client, test_user, test_posts):
+    res = authorized_client.delete(f"/posts/{test_posts[3].id}")
+    assert res.status_code == 403
+
