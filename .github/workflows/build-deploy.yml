@@ -8,6 +8,11 @@ jobs:
     steps:
       - name: pulling git repo
         uses: actions/checkout@v4
-      - name: say hi to andrew
-        run: echo "hello Andrew"
-
+      - name: Install python version 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Update pip
+        run: python -m pip install --upgrade pip
+      - name: Install all dependencies
+        run: pip install -r requirements.txt
